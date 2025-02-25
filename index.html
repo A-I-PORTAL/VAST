@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gothic Runner</title>
+    <style>
+        :root {
+            --bg-primary: #0A0A0B;
+            --bg-secondary: #1A181B;
+            --accent-primary: #712F79;
+            --accent-secondary: #B97A95;
+            --text-primary: #E6E6E6;
+            --text-secondary: #B0B0B0;
+            --danger: #8B0000;
+            --collectible: #FFD700;
+            --power-up: #00FFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            touch-action: manipulation;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-canvas {
+            background-color: var(--bg-secondary);
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            padding: 10px;
+            background-color: rgba(10, 10, 11, 0.7);
+            border-radius: 5px;
+            border-left: 3px solid var(--accent-primary);
+            font-size: 16px;
+        }
+
+        #score {
+            font-size: 1.5em;
+            color: var(--accent-secondary);
+        }
+
+        #high-score {
+            margin-top: 5px;
+            color: var(--text-secondary);
+        }
+
+        #power-indicator {
+            margin-top: 5px;
+            color: var(--power-up);
+        }
+
+        #health-bar {
+            margin-top: 5px;
+            height: 10px;
+            width: 100px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--text-secondary);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        #health-fill {
+            height: 100%;
+            width: 100%;
+            background-color: var(--accent-secondary);
+            transition: width 0.3s ease;
+        }
+
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(10, 10, 11, 0.9);
+            z-index: 20;
+        }
+
+        .game-title {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: var(--accent-secondary);
+            text-shadow: 0 0 10px var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        .game-button {
+            background-color: var(--accent-primary);
+            color: var(--text-primary);
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 5px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(113, 47, 121, 0.5);
+            text-transform: uppercase;
+        }
+
+        .game-button:hover, .game-button:active {
+            background-color: var(--accent-secondary);
+            transform: scale(1.05);
+        }
+
+        .final-score {
+            font-size: 2em;
+            margin: 20px 0;
+            color: var(--accent-secondary);
+        }
+
+        #game-over-screen {
+            display: none;
+        }
+
+        #mute-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        #mute-button svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-primary);
+        }
+
+        #controls-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 10;
+            padding: 10px;
+            background-color: rgba(10, 10, 11, 0.7);
+            border-radius: 5px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        #orientation-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            text-align: center;
+            padding-top: 40vh;
+            z-index: 100;
+        }
+
+        @media (max-height: 450px) and (orientation: portrait) {
+            #orientation-warning {
+                display: block;
+            }
+        }
+
+        @media (orientation: landscape) {
+            .game-title {
+                font-size: 2em;
+                margin-bottom: 10px;
+            }
+
+            .game-button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+
+        @media (max-width: 400px) {
+            #hud {
+                font-size: 14px;
+            }
+            
+            .game-title {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="hud">
+            <div id="score">Score: 0</div>
+            <div id="high-score">High Score: 0</div>
+            <div id="power-indicator"></div>
+            <div id="health-bar"><div id="health-fill"></div></div>
+        </div>
+        <div id="controls-info">
+            SPACE / TAP - Jump | W or ↑ - Double Jump | S or ↓ - Slide
+        </div>
+        <button id="mute-button">
+            <svg viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+        </button>
+        <div id="start-screen">
+            <h1 class="game-title">Gothic Runner</h1>
+            <button id="start-button" class="game-button">Start Game</button>
+        </div>
+        <div id="game-over-screen">
+            <h1 class="game-title">Game Over</h1>
+            <div class="final-score">Score: <span id="final-score">0</span></div>
+            <button id="restart-button" class="game-button">Play Again</button>
+        </div>
+        <div id="orientation-warning">
+            <h2>Please rotate your device to landscape mode for the best experience.</h2>
+        </div>
+    </div>
+
+    <script>
+        // **Game Configuration**
+        const gameConfig = {
+            gravity: 0.5,
+            jumpForce: -12,
+            doubleJumpForce: -10,
+            speed: 5,
+            spawnRate: 1500, // milliseconds
+            collectibleSpawnRate: 1000, // milliseconds
+            powerUpSpawnRate: 5000, // milliseconds
+            ground: { height: 50 },
+            player: { 
+                width: 30, 
+                height: 50,
+                health: 100,
+                invulnerableTime: 1000 // milliseconds
+            },
+            obstacle: { 
+                minWidth: 15, 
+                maxWidth: 30, 
+                minHeight: 30, 
+                maxHeight: 60 
+            },
+            platform: {
+                minWidth: 80,
+                maxWidth: 150,
+                height: 15,
+                minGap: 50,
+                maxGap: 150
+            },
+            collectible: {
+                size: 20,
+                value: 50 // points
+            },
+            powerUp: {
+                size: 25,
+                duration: 8000 // milliseconds
+            },
+            colors: {
+                player: '#B97A95',
+                ground: '#1A181B',
+                obstacle: '#712F79',
+                background: '#0A0A0B',
+                platform: '#4A4A4B',
+                collectible: '#FFD700',
+                powerUp: '#00FFFF'
+            },
+            difficultyIncrease: {
+                speedIncreaseInterval: 1000, // points
+                speedIncreaseAmount: 0.2,
+                spawnRateDecreaseInterval: 500, // points
+                spawnRateDecreaseAmount: 50, // milliseconds
+                minSpawnRate: 500 // milliseconds
+            },
+            audioEnabled: true,
+            particles: {
+                count: 15,
+                speed: 2,
+                gravity: 0.1,
+                size: 5,
+                lifetime: 30 // frames
+            }
+        };
+
+        // **Game State**
+        let gameState = {
+            running: false,
+            score: 0,
+            highScore: 0,
+            spawnTimer: 0,
+            lastSpawnTime: 0,
+            lastCollectibleSpawnTime: 0,
+            lastPowerUpSpawnTime: 0,
+            obstacles: [],
+            platforms: [],
+            collectibles: [],
+            powerUps: [],
+            particles: [],
+            sceneryElements: [],
+            player: {
+                x: 50,
+                y: 0,
+                velocityY: 0,
+                velocityX: 0,
+                jumping: false,
+                doubleJumpAvailable: false,
+                sliding: false,
+                health: gameConfig.player.health,
+                invulnerable: false,
+                lastDamageTime: 0,
+                hasPowerUp: false,
+                powerUpType: null,
+                powerUpEndTime: 0,
+                animation: { frame: 0, frameCount: 8, frameSpeed: 5, frameTimer: 0 }
+            },
+            background: { layers: [], speed: 0.5 },
+            camera: { shake: { intensity: 0, duration: 0, timer: 0 } }
+        };
+
+        // **DOM Elements**
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('high-score');
+        const finalScoreElement = document.getElementById('final-score');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const muteButton = document.getElementById('mute-button');
+        const powerIndicator = document.getElementById('power-indicator');
+        const healthFill = document.getElementById('health-fill');
+
+        // **Control State**
+        const controls = { jump: false, doubleJump: false, slide: false };
+
+        // **Audio Setup**
+        let audioContext, jumpSound, hitSound, pointSound, collectSound, powerUpSound, powerUpEndSound;
+        let musicEnabled = true;
+
+        function initAudio() {
+            try {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContext();
+                jumpSound = createSound([330, 392], 0.1);
+                hitSound = createSound([110, 55], 0.2);
+                pointSound = createSound([523, 659], 0.05);
+                collectSound = createSound([659, 783], 0.1);
+                powerUpSound = createSound([523, 659, 783], 0.2);
+                powerUpEndSound = createSound([783, 659, 523], 0.2);
+            } catch (e) {
+                console.error("Web Audio API not supported:", e);
+                gameConfig.audioEnabled = false;
+            }
+        }
+
+        function createSound(frequencies, duration) {
+            return {
+                play: function() {
+                    if (!gameConfig.audioEnabled || !musicEnabled) return;
+                    const gain = audioContext.createGain();
+                    gain.gain.value = 0.2;
+                    gain.connect(audioContext.destination);
+                    const oscillators = frequencies.map(freq => {
+                        const osc = audioContext.createOscillator();
+                        osc.type = 'square';
+                        osc.frequency.value = freq;
+                        osc.connect(gain);
+                        osc.start();
+                        return osc;
+                    });
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+                    setTimeout(() => oscillators.forEach(osc => osc.stop()), duration * 1000);
+                }
+            };
+        }
+
+        // **Sprites**
+        const sprites = {
+            player: { idle: [], run: [], jump: [], doubleJump: [], slide: [], fall: [], hit: [] },
+            enemy: { bat: [], ghost: [], skeleton: [] },
+            collectible: [],
+            powerUp: [],
+            background: [],
+            platform: [],
+            particles: []
+        };
+
+        function initVisuals() {
+            createPlayerSprites();
+            createEnemySprites();
+            createCollectibleSprites();
+            createPowerUpSprites();
+            createBackgroundLayers();
+            createPlatformSprites();
+            createParticleSprites();
+        }
+
+        function createAnimationFrames(drawFunction, frameCount) {
+            const frames = [];
+            const size = 30;
+            for (let i = 0; i < frameCount; i++) {
+                const spriteCanvas = document.createElement('canvas');
+                spriteCanvas.width = size;
+                spriteCanvas.height = size;
+                const spriteCtx = spriteCanvas.getContext('2d');
+                drawFunction(spriteCtx, i);
+                frames.push(spriteCanvas);
+            }
+            return frames;
+        }
+
+        function createPlayerSprites() {
+            sprites.player.idle = createAnimationFrames((ctx, frame) => {
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.fillRect(5, 5, 20, 40);
+                ctx.fillStyle = '#6D2664';
+                ctx.beginPath();
+                ctx.moveTo(5, 10);
+                ctx.quadraticCurveTo(-5 - Math.sin(frame * 0.2) * 5, 30, 0, 45);
+                ctx.lineTo(5, 30);
+                ctx.fill();
+                ctx.fillStyle = '#DDD';
+                ctx.fillRect(20, 10, 5, 10);
+                ctx.fillStyle = '#3A3A3A';
+                ctx.fillRect(22, 12, 2, 4);
+            }, 8);
+
+            sprites.player.run = createAnimationFrames((ctx, frame) => {
+                const legOffset = Math.sin(frame * Math.PI / 4) * 5;
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.fillRect(5, 5, 20, 30);
+                ctx.fillRect(5, 35, 8, 10 + legOffset);
+                ctx.fillRect(17, 35, 8, 10 - legOffset);
+                ctx.fillStyle = '#6D2664';
+                ctx.beginPath();
+                ctx.moveTo(5, 10);
+                ctx.quadraticCurveTo(-5 - Math.sin(frame * 0.5) * 3, 20, 0, 35);
+                ctx.lineTo(5, 25);
+                ctx.fill();
+                ctx.fillStyle = '#DDD';
+                ctx.fillRect(20, 10, 5, 10);
+                ctx.fillStyle = '#3A3A3A';
+                ctx.fillRect(22, 12, 2, 4);
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.save();
+                ctx.translate(15, 20);
+                ctx.rotate(Math.sin(frame * Math.PI / 4) * 0.3);
+                ctx.fillRect(0, 0, 5, 15);
+                ctx.restore();
+            }, 8);
+
+            sprites.player.jump = createAnimationFrames((ctx, frame) => {
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.fillRect(5, 5, 20, 30);
+                ctx.fillRect(5, 35, 8, 5);
+                ctx.fillRect(17, 35, 8, 5);
+                ctx.fillStyle = '#6D2664';
+                ctx.beginPath();
+                ctx.moveTo(5, 10);
+                ctx.quadraticCurveTo(-5, 0, -5, -5 - Math.sin(frame * 0.5) * 5);
+                ctx.lineTo(5, 0);
+                ctx.fill();
+                ctx.fillStyle = '#DDD';
+                ctx.fillRect(20, 10, 5, 10);
+                ctx.fillStyle = '#3A3A3A';
+                ctx.fillRect(22, 12, 2, 4);
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.fillRect(20, 5, 5, 15);
+            }, 6);
+
+            sprites.player.doubleJump = createAnimationFrames((ctx, frame) => {
+                ctx.save();
+                ctx.translate(15, 25);
+                ctx.rotate(frame * Math.PI / 4);
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.fillRect(-10, -15, 20, 30);
+                ctx.fillStyle = '#6D2664';
+                ctx.beginPath();
+                ctx.moveTo(-10, -15);
+                ctx.quadraticCurveTo(-15, 0, -10, 15);
+                ctx.lineTo(-10, 0);
+                ctx.fill();
+                ctx.fillStyle = '#DDD';
+                ctx.fillRect(5, -10, 5, 10);
+                ctx.fillStyle = '#3A3A3A';
+                ctx.fillRect(7, -8, 2, 4);
+                ctx.restore();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (frame + i) * Math.PI * 2 / 5;
+                    const dist = 20 + Math.sin(frame * 0.5) * 5;
+                    ctx.fillStyle = '#B97A95';
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    ctx.arc(15 + Math.cos(angle) * dist, 25 + Math.sin(angle) * dist, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            }, 8);
+
+            sprites.player.slide = createAnimationFrames((ctx, frame) => {
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.fillRect(5, 25, 25, 20);
+                ctx.fillStyle = '#6D6D6D';
+                ctx.globalAlpha = 0.7;
+                for (let i = 0; i < 5; i++) {
+                    const x = 5 - (frame + i) * 3 % 15;
+                    const y = 42 + Math.sin(i * 0.5) * 3;
+                    const size = 3 - (i * 0.5) % 2;
+                    ctx.fillRect(x, y, size, size);
+                }
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#6D2664';
+                ctx.beginPath();
+                ctx.moveTo(5, 30);
+                ctx.quadraticCurveTo(-10 - Math.sin(frame * 0.3) * 5, 35, -5, 45);
+                ctx.lineTo(5, 40);
+                ctx.fill();
+                ctx.fillStyle = '#DDD';
+                ctx.fillRect(25, 30, 5, 5);
+                ctx.fillStyle = '#3A3A3A';
+                ctx.fillRect(27, 32, 2, 2);
+            }, 6);
+
+            sprites.player.fall = createAnimationFrames((ctx, frame) => {
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.save();
+                ctx.translate(15, 25);
+                ctx.rotate(Math.PI * 0.1);
+                ctx.fillRect(-10, -15, 20, 30);
+                ctx.restore();
+                ctx.fillStyle = '#6D2664';
+                ctx.beginPath();
+                ctx.moveTo(5, 15);
+                ctx.quadraticCurveTo(-15 - Math.sin(frame * 0.4) * 5, 25, -10, 35);
+                ctx.lineTo(5, 25);
+                ctx.fill();
+                ctx.fillStyle = '#DDD';
+                ctx.fillRect(20, 15, 5, 10);
+                ctx.fillStyle = '#3A3A3A';
+                ctx.fillRect(22, 19, 2, 4);
+                ctx.fillStyle = gameConfig.colors.player;
+                ctx.save();
+                ctx.translate(25, 20);
+                ctx.rotate(Math.PI * 0.25);
+                ctx.fillRect(0, 0, 5, 15);
+                ctx.restore();
+            }, 6);
+
+            sprites.player.hit = createAnimationFrames((ctx, frame) => {
+                ctx.fillStyle = frame % 2 === 0 ? gameConfig.colors.player : '#FF3333';
+                ctx.fillRect(5, 5, 20, 40);
+                ctx.fillStyle = '#6D2664';
+                ctx.beginPath();
+                ctx.moveTo(5, 10);
+                ctx.quadraticCurveTo(-5 + Math.sin(frame) * 3, 30 + Math.cos(frame) * 3, 0, 45);
+                ctx.lineTo(5, 30);
+                ctx.fill();
+                ctx.fillStyle = '#DDD';
+                ctx.fillRect(20, 10, 5, 10);
+                ctx.fillStyle = '#3A3A3A';
+                ctx.fillRect(22, 12, 2, 1);
+                ctx.fillRect(22, 16, 2, 1);
+            }, 6);
+        }
+
+        function createEnemySprites() {
+            sprites.enemy.bat = createAnimationFrames((ctx, frame) => {
+                ctx.fillStyle = '#4A4A4A';
+                ctx.beginPath();
+                ctx.arc(15, 15, 8, 0, Math.PI * 2);
+                ctx.fill();
+                const wingSpread = Math.sin(frame * Math.PI / 4) * 10;
+                ctx.fillStyle = '#2A2A2A';
+                ctx.beginPath();
+                ctx.moveTo(15, 15);
+                ctx.quadraticCurveTo(5, 15 - wingSpread, 0, 15);
+                ctx.quadraticCurveTo(5, 15 + wingSpread, 15, 15);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(15, 15);
+                ctx.quadraticCurveTo(25, 15 - wingSpread, 30, 15);
+                ctx.quadraticCurveTo(25, 15 + wingSpread, 15, 15);
+                ctx.fill();
+                ctx.fillStyle = '#FF3333';
+                ctx.fillRect(12, 12, 2, 2);
+                ctx.fillRect(18, 12, 2, 2);
+            }, 8);
+
+            sprites.enemy.ghost = createAnimationFrames((ctx, frame) => {
+                ctx.fillStyle = 'rgba(200, 200, 220, 0.7)';
+                ctx.beginPath();
+                ctx.moveTo(10, 10);
+                ctx.lineTo(20, 10);
+                for (let i = 0; i <= 10; i++) {
+                    const waveHeight = Math.sin((frame * 0.3) + (i / 10) * Math.PI * 2) * 3;
+                    ctx.lineTo(20 - i, 25 + waveHeight);
+                }
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(12, 15, 3, 3);
+                ctx.fillRect(18, 15, 3, 3);
+                ctx.beginPath();
+                ctx.arc(15, 20, 3, 0, Math.PI, false);
+                ctx.stroke();
+            }, 8);
+
+            sprites.enemy.skeleton = createAnimationFrames((ctx, frame) => {
+                ctx.fillStyle = '#DDDDDD';
+                ctx.fillRect(10, 10, 10, 20);
+                ctx.beginPath();
+                ctx.arc(15, 7, 7, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(12, 6, 2, 2);
+                ctx.fillRect(18, 6, 2, 2);
+                ctx.strokeStyle = '#AAAAAA';
+                ctx.beginPath();
+                ctx.moveTo(11, 10);
+                ctx.lineTo(19, 10);
+                ctx.stroke();
+                const armOffset = Math.sin(frame * Math.PI / 4) * 5;
+                ctx.fillStyle = '#DDDDDD';
+                ctx.fillRect(5, 15 + armOffset, 5, 2);
+                ctx.fillRect(20, 15 - armOffset, 5, 2);
+                const legOffset = Math.sin(frame * Math.PI / 4) * 3;
+                ctx.fillRect(10, 30, 3, 10 + legOffset);
+                ctx.fillRect(17, 30, 3, 10 - legOffset);
+            }, 8);
+        }
+
+        function createCollectibleSprites() {
+            sprites.collectible = createAnimationFrames((ctx, frame) => {
+                const glow = Math.sin(frame * Math.PI / 4) * 5;
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                ctx.beginPath();
+                ctx.arc(15, 15, 10 + glow * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = gameConfig.colors.collectible;
+                ctx.beginPath();
+                ctx.ellipse(15, 15, 8, 8 * Math.abs(Math.cos(frame * Math.PI / 4)), frame * Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#B8860B';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(15, 15, 5, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(15, 15, 7, frame * Math.PI / 4, frame * Math.PI / 4 + Math.PI / 4);
+                ctx.stroke();
+            }, 8);
+        }
+
+        function createPowerUpSprites() {
+            sprites.powerUp = createAnimationFrames((ctx, frame) => {
+                const pulse = 1 + Math.sin(frame * Math.PI / 4) * 0.2;
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+                ctx.beginPath();
+                ctx.arc(15, 15, 12 * pulse, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = gameConfig.colors.powerUp;
+                ctx.beginPath();
+                ctx.moveTo(15, 5 * pulse);
+                ctx.lineTo(25 * pulse, 15);
+                ctx.lineTo(15, 25 * pulse);
+                ctx.lineTo(5 * pulse, 15);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(15, 10 * pulse);
+                ctx.lineTo(20 * pulse, 15);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                for (let i = 0; i < 5; i++) {
+                    const angle = (frame * 0.5 + i) * Math.PI * 2 / 5;
+                    const dist = 10 + Math.sin(frame * 0.3 + i) * 8;
+                    ctx.beginPath();
+                    ctx.arc(15 + Math.cos(angle) * dist, 15 + Math.sin(angle) * dist, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }, 8);
+        }
+
+        function createBackgroundLayers() {
+            const mountainsCanvas = document.createElement('canvas');
+            mountainsCanvas.width = canvas.width;
+            mountainsCanvas.height = canvas.height;
+            const mountainsCtx = mountainsCanvas.getContext('2d');
+            mountainsCtx.fillStyle = '#1A1A2E';
+            for (let i = 0; i < 5; i++) {
+                const height = 100 + Math.random() * 150;
+                const width = 200 + Math.random() * 300;
+                const x = Math.random() * canvas.width;
+                mountainsCtx.beginPath();
+                mountainsCtx.moveTo(x - width / 2, canvas.height);
+                mountainsCtx.lineTo(x, canvas.height - height);
+                mountainsCtx.lineTo(x + width / 2, canvas.height);
+                mountainsCtx.fill();
+            }
+            mountainsCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            for (let i = 0; i < 100; i++) {
+                const size = Math.random() * 2;
+                mountainsCtx.fillRect(Math.random() * canvas.width, Math.random() * (canvas.height - 200), size, size);
+            }
+
+            const treesCanvas = document.createElement('canvas');
+            treesCanvas.width = canvas.width;
+            treesCanvas.height = canvas.height;
+            const treesCtx = treesCanvas.getContext('2d');
+            treesCtx.fillStyle = '#2A2A3E';
+            for (let i = 0; i < 15; i++) {
+                const height = 80 + Math.random() * 120;
+                const width = 40 + Math.random() * 60;
+                const x = Math.random() * canvas.width;
+                treesCtx.fillRect(x - width / 8, canvas.height - height, width / 4, height);
+                treesCtx.beginPath();
+                treesCtx.moveTo(x - width / 2, canvas.height - height + 20);
+                treesCtx.lineTo(x, canvas.height - height - 60);
+                treesCtx.lineTo(x + width / 2, canvas.height - height + 20);
+                treesCtx.fill();
+            }
+
+            const ruinsCanvas = document.createElement('canvas');
+            ruinsCanvas.width = canvas.width;
+            ruinsCanvas.height = canvas.height;
+            const ruinsCtx = ruinsCanvas.getContext('2d');
+            ruinsCtx.fillStyle = '#3A3A4E';
+            for (let i = 0; i < 8; i++) {
+                const height = 50 + Math.random() * 150;
+                const width = 30 + Math.random() * 40;
+                const x = Math.random() * canvas.width;
+                ruinsCtx.fillRect(x - width / 2, canvas.height - height, width, height);
+                ruinsCtx.beginPath();
+                ruinsCtx.moveTo(x - width / 2, canvas.height - height);
+                ruinsCtx.lineTo(x - width / 4, canvas.height - height - 20);
+                ruinsCtx.lineTo(x + width / 4, canvas.height - height - 10);
+                ruinsCtx.lineTo(x + width / 2, canvas.height - height);
+                ruinsCtx.fill();
+            }
+
+            const fogCanvas = document.createElement('canvas');
+            fogCanvas.width = canvas.width;
+            fogCanvas.height = canvas.height;
+            const fogCtx = fogCanvas.getContext('2d');
+            const gradient = fogCtx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(20, 20, 30, 0.7)');
+            gradient.addColorStop(0.6, 'rgba(20, 20, 30, 0.2)');
+            gradient.addColorStop(1, 'rgba(20, 20, 30, 0)');
+            fogCtx.fillStyle = gradient;
+            fogCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+            gameState.background.layers = [
+                { image: mountainsCanvas, speed: 0.2 },
+                { image: treesCanvas, speed: 0.5 },
+                { image: ruinsCanvas, speed: 0.8 },
+                { image: fogCanvas, speed: 0.1 }
+            ];
+        }
+
+        function createPlatformSprites() {
+            sprites.platform = createAnimationFrames((ctx) => {
+                ctx.fillStyle = gameConfig.colors.platform;
+                ctx.fillRect(0, 0, 30, 15);
+                ctx.strokeStyle = '#333333';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 3; i++) for (let j = 0; j < 6; j++) ctx.strokeRect(j * 5, i * 5, 5, 5);
+                ctx.fillStyle = '#446644';
+                ctx.globalAlpha = 0.4;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, 15);
+                ctx.lineTo(2, 15);
+                ctx.lineTo(1, 10);
+                ctx.lineTo(3, 5);
+                ctx.lineTo(0, 0);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }, 1);
+        }
+
+        function createParticleSprites() {
+            sprites.particles = createAnimationFrames((ctx, frame) => {
+                const types = [
+                    () => { ctx.fillStyle = '#AAAAAA'; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(15, 15, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; },
+                    () => {
+                        ctx.fillStyle = '#FFFFFF'; ctx.globalAlpha = 0.8; ctx.beginPath();
+                        for (let i = 0; i < 5; i++) {
+                            const angle = (i * Math.PI * 2 / 5) - Math.PI / 2;
+                            const length = i % 2 === 0 ? 5 : 2;
+                            const x = 15 + Math.cos(angle) * length;
+                            const y = 15 + Math.sin(angle) * length;
+                            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                        }
+                        ctx.fill(); ctx.globalAlpha = 1;
+                    },
+                    () => { ctx.fillStyle = '#712F79'; ctx.beginPath(); ctx.moveTo(13, 13); ctx.lineTo(17, 13); ctx.lineTo(16, 17); ctx.lineTo(14, 17); ctx.fill(); }
+                ];
+                types[frame % 3]();
+            }, 3);
+        }
+
+        // **Event Listeners**
+        function setupEventListeners() {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') controls.jump = true;
+                else if (e.key === 'ArrowDown' || e.key === 's') controls.slide = true;
+                e.preventDefault();
+            });
+            window.addEventListener('keyup', (e) => {
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') controls.jump = false;
+                else if (e.key === 'ArrowDown' || e.key === 's') controls.slide = false;
+                e.preventDefault();
+            });
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touchY = e.touches[0].clientY;
+                touchY > window.innerHeight * 0.66 ? controls.slide = true : controls.jump = true;
+            });
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                controls.jump = controls.slide = false;
+            });
+            startButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', startGame);
+            muteButton.addEventListener('click', toggleMute);
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function toggleMute() {
+            musicEnabled = !musicEnabled;
+            muteButton.innerHTML = musicEnabled ?
+                `<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77z"/></svg>` :
+                `<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`;
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            createBackgroundLayers();
+        }
+
+        // **Game Logic**
+        let gameLoop, lastTime = 0;
+
+        function startGame() {
+            gameState = {
+                running: true,
+                score: 0,
+                highScore: localStorage.getItem('gothicRunnerHighScore') || 0,
+                spawnTimer: 0,
+                lastSpawnTime: 0,
+                lastCollectibleSpawnTime: 0,
+                lastPowerUpSpawnTime: 0,
+                obstacles: [],
+                platforms: [],
+                collectibles: [],
+                powerUps: [],
+                particles: [],
+                sceneryElements: [],
+                player: {
+                    x: 50,
+                    y: canvas.height - gameConfig.ground.height - gameConfig.player.height,
+                    velocityY: 0,
+                    velocityX: 0,
+                    jumping: false,
+                    doubleJumpAvailable: false,
+                    sliding: false,
+                    health: gameConfig.player.health,
+                    invulnerable: false,
+                    lastDamageTime: 0,
+                    hasPowerUp: false,
+                    powerUpType: null,
+                    powerUpEndTime: 0,
+                    animation: { frame: 0, frameCount: 8, frameSpeed: 5, frameTimer: 0 }
+                },
+                background: { layers: gameState.background.layers, speed: 0.5 },
+                camera: { shake: { intensity: 0, duration: 0, timer: 0 } }
+            };
+            scoreElement.textContent = `Score: 0`;
+            highScoreElement.textContent = `High Score: ${gameState.highScore}`;
+            updateHealthBar();
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+            if (!gameLoop) gameLoop = requestAnimationFrame(update);
+        }
+
+        function endGame() {
+            gameState.running = false;
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+                localStorage.setItem('gothicRunnerHighScore', gameState.highScore);
+            }
+            finalScoreElement.textContent = gameState.score;
+            highScoreElement.textContent = `High Score: ${gameState.highScore}`;
+            gameOverScreen.style.display = 'flex';
+        }
+
+        function updateHealthBar() {
+            const healthPercent = (gameState.player.health / gameConfig.player.health) * 100;
+            healthFill.style.width = `${healthPercent}%`;
+            healthFill.style.backgroundColor = healthPercent > 70 ? 'var(--accent-secondary)' : healthPercent > 30 ? 'orange' : 'var(--danger)';
+        }
+
+        function createParticleEffect(x, y, count, color, speed) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = Math.random() * speed;
+                gameState.particles.push({
+                    x, y,
+                    velocityX: Math.cos(angle) * velocity,
+                    velocityY: Math.sin(angle) * velocity,
+                    gravity: gameConfig.particles.gravity,
+                    size: Math.random() * gameConfig.particles.size + 2,
+                    type: Math.floor(Math.random() * sprites.particles.length),
+                    life: Math.random() * gameConfig.particles.lifetime + 10
+                });
+            }
+        }
+
+        function spawnObstacle() {
+            const now = Date.now();
+            if (now - gameState.lastSpawnTime < gameConfig.spawnRate) return;
+            const obstacleType = Math.floor(Math.random() * 3);
+            if (obstacleType === 0) {
+                const width = Math.random() * (gameConfig.obstacle.maxWidth - gameConfig.obstacle.minWidth) + gameConfig.obstacle.minWidth;
+                const height = Math.random() * (gameConfig.obstacle.maxHeight - gameConfig.obstacle.minHeight) + gameConfig.obstacle.minHeight;
+                gameState.obstacles.push({
+                    x: canvas.width,
+                    y: canvas.height - gameConfig.ground.height - height,
+                    width, height,
+                    type: 'ground',
+                    enemy: 'skeleton',
+                    frame: 0,
+                    frameTimer: 0
+                });
+            } else if (obstacleType === 1) {
+                const size = 30;
+                const y = canvas.height - gameConfig.ground.height - size - Math.random() * 150;
+                gameState.obstacles.push({
+                    x: canvas.width,
+                    y, width: size, height: size,
+                    type: 'flying',
+                    enemy: Math.random() > 0.5 ? 'bat' : 'ghost',
+                    frame: 0,
+                    frameTimer: 0
+                });
+            } else {
+                const width = Math.random() * (gameConfig.platform.maxWidth - gameConfig.platform.minWidth) + gameConfig.platform.minWidth;
+                const y = canvas.height - gameConfig.ground.height - Math.random() * 200 - 50;
+                gameState.platforms.push({ x: canvas.width, y, width, height: gameConfig.platform.height, frame: 0 });
+                if (Math.random() > 0.5) {
+                    const obstacleWidth = width / 3;
+                    const obstacleHeight = 30;
+                    const obstacleX = canvas.width + width * Math.random() * 0.7;
+                    gameState.obstacles.push({
+                        x: obstacleX,
+                        y: y - obstacleHeight,
+                        width: obstacleWidth,
+                        height: obstacleHeight,
+                        type: 'platform',
+                        enemy: 'skeleton',
+                        frame: 0,
+                        frameTimer: 0
+                    });
+                }
+            }
+            gameState.lastSpawnTime = now;
+        }
+
+        function spawnCollectible() {
+            const now = Date.now();
+            if (now - gameState.lastCollectibleSpawnTime < gameConfig.collectibleSpawnRate) return;
+            const y = Math.random() > 0.5 ?
+                canvas.height - gameConfig.ground.height - gameConfig.collectible.size - Math.random() * 150 :
+                canvas.height - gameConfig.ground.height - gameConfig.collectible.size;
+            gameState.collectibles.push({
+                x: canvas.width,
+                y,
+                width: gameConfig.collectible.size,
+                height: gameConfig.collectible.size,
+                value: gameConfig.collectible.value,
+                frame: 0,
+                frameTimer: 0
+            });
+            gameState.lastCollectibleSpawnTime = now;
+        }
+
+        function spawnPowerUp() {
+            const now = Date.now();
+            if (now - gameState.lastPowerUpSpawnTime < gameConfig.powerUpSpawnRate) return;
+            const y = canvas.height - gameConfig.ground.height - gameConfig.powerUp.size - 100 - Math.random() * 100;
+            const powerUpTypes = ['invulnerability', 'doubleScore', 'speedBoost'];
+            const type = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+            gameState.powerUps.push({
+                x: canvas.width,
+                y,
+                width: gameConfig.powerUp.size,
+                height: gameConfig.powerUp.size,
+                type,
+                frame: 0,
+                frameTimer: 0
+            });
+            gameState.lastPowerUpSpawnTime = now;
+        }
+
+        function addSceneryElement() {
+            if (Math.random() <= 0.03) {
+                const type = Math.floor(Math.random() * 3);
+                let element;
+                switch (type) {
+                    case 0: element = { x: canvas.width, y: canvas.height - gameConfig.ground.height - 30, width: 20, height: 30, type: 'gravestone' }; break;
+                    case 1: element = { x: canvas.width, y: canvas.height - gameConfig.ground.height - 80, width: 40, height: 80, type: 'tree' }; break;
+                    case 2: element = { x: canvas.width, y: canvas.height - gameConfig.ground.height - 20, width: 100, height: 20, type: 'mist' }; break;
+                }
+                gameState.sceneryElements.push(element);
+            }
+        }
+
+        function update(timestamp) {
+            if (!gameState.running) return;
+            const deltaTime = (timestamp - lastTime) / 16.67; // Normalize to 60 FPS
+            lastTime = timestamp;
+
+            updatePlayer(deltaTime);
+            updateObstacles(deltaTime);
+            updateCollectibles(deltaTime);
+            updatePowerUps(deltaTime);
+            updateParticles(deltaTime);
+            spawnObstacle();
+            spawnCollectible();
+            spawnPowerUp();
+            addSceneryElement();
+            checkCollisions();
+            gameState.score += gameConfig.speed * deltaTime / 60;
+            scoreElement.textContent = `Score: ${Math.floor(gameState.score)}`;
+            render();
+            requestAnimationFrame(update);
+        }
+
+        function updatePlayer(deltaTime) {
+            gameState.player.velocityY += gameConfig.gravity * deltaTime;
+            gameState.player.y += gameState.player.velocityY * deltaTime;
+
+            let groundY = canvas.height - gameConfig.ground.height - gameConfig.player.height;
+            let onPlatform = false;
+            for (const platform of gameState.platforms) {
+                if (gameState.player.x + gameConfig.player.width > platform.x &&
+                    gameState.player.x < platform.x + platform.width &&
+                    gameState.player.y + gameConfig.player.height <= platform.y &&
+                    gameState.player.y + gameConfig.player.height + gameState.player.velocityY * deltaTime >= platform.y) {
+                    groundY = platform.y - gameConfig.player.height;
+                    onPlatform = true;
+                    break;
+                }
+            }
+
+            if (gameState.player.y >= groundY) {
+                gameState.player.y = groundY;
+                gameState.player.velocityY = 0;
+                gameState.player.jumping = false;
+                gameState.player.doubleJumpAvailable = true;
+            }
+
+            if (controls.jump && !gameState.player.jumping) {
+                gameState.player.jumping = true;
+                gameState.player.velocityY = gameConfig.jumpForce;
+                jumpSound.play();
+                createParticleEffect(gameState.player.x, gameState.player.y + gameConfig.player.height, 5, '#FFFFFF', 2);
+            } else if (controls.jump && gameState.player.doubleJumpAvailable && gameState.player.velocityY > 0) {
+                gameState.player.velocityY = gameConfig.doubleJumpForce;
+                gameState.player.doubleJumpAvailable = false;
+                jumpSound.play();
+                createParticleEffect(gameState.player.x, gameState.player.y + gameConfig.player.height, 10, '#FFFFFF', 3);
+            }
+
+            gameState.player.sliding = controls.slide && !gameState.player.jumping;
+
+            gameState.player.animation.frameTimer += deltaTime;
+            if (gameState.player.animation.frameTimer >= gameState.player.animation.frameSpeed) {
+                gameState.player.animation.frame = (gameState.player.animation.frame + 1) % gameState.player.animation.frameCount;
+                gameState.player.animation.frameTimer = 0;
+            }
+
+            if (gameState.player.hasPowerUp && Date.now() > gameState.player.powerUpEndTime) {
+                gameState.player.hasPowerUp = false;
+                gameState.player.powerUpType = null;
+                powerUpEndSound.play();
+                powerIndicator.textContent = '';
+            }
+        }
+
+        function updateObstacles(deltaTime) {
+            gameState.obstacles.forEach((obstacle, index) => {
+                obstacle.x -= gameConfig.speed * deltaTime;
+                obstacle.frameTimer += deltaTime;
+                if (obstacle.frameTimer >= 5) {
+                    obstacle.frame = (obstacle.frame + 1) % sprites.enemy[obstacle.enemy].length;
+                    obstacle.frameTimer = 0;
+                }
+                if (obstacle.x + obstacle.width < 0) gameState.obstacles.splice(index, 1);
+            });
+            gameState.platforms.forEach((platform, index) => {
+                platform.x -= gameConfig.speed * deltaTime;
+                if (platform.x + platform.width < 0) gameState.platforms.splice(index, 1);
+            });
+        }
+
+        function updateCollectibles(deltaTime) {
+            gameState.collectibles.forEach((collectible, index) => {
+                collectible.x -= gameConfig.speed * deltaTime;
+                collectible.frameTimer += deltaTime;
+                if (collectible.frameTimer >= 5) {
+                    collectible.frame = (collectible.frame + 1) % sprites.collectible.length;
+                    collectible.frameTimer = 0;
+                }
+                if (collectible.x + collectible.width < 0) gameState.collectibles.splice(index, 1);
+            });
+        }
+
+        function updatePowerUps(deltaTime) {
+            gameState.powerUps.forEach((powerUp, index) => {
+                powerUp.x -= gameConfig.speed * deltaTime;
+                powerUp.frameTimer += deltaTime;
+                if (powerUp.frameTimer >= 5) {
+                    powerUp.frame = (powerUp.frame + 1) % sprites.powerUp.length;
+                    powerUp.frameTimer = 0;
+                }
+                if (powerUp.x + powerUp.width < 0) gameState.powerUps.splice(index, 1);
+            });
+        }
+
+        function updateParticles(deltaTime) {
+            gameState.particles.forEach((particle, index) => {
+                particle.x += particle.velocityX * deltaTime;
+                particle.y += particle.velocityY * deltaTime;
+                particle.velocityY += particle.gravity * deltaTime;
+                particle.life -= deltaTime;
+                if (particle.life <= 0) gameState.particles.splice(index, 1);
+            });
+            gameState.sceneryElements.forEach((element, index) => {
+                element.x -= gameConfig.speed * deltaTime;
+                if (element.x + element.width < 0) gameState.sceneryElements.splice(index, 1);
+            });
+        }
+
+        function checkCollisions() {
+            const player = gameState.player;
+            gameState.obstacles.forEach((obstacle) => {
+                if (!player.invulnerable && player.x + gameConfig.player.width > obstacle.x && player.x < obstacle.x + obstacle.width &&
+                    player.y + gameConfig.player.height > obstacle.y && player.y < obstacle.y + obstacle.height) {
+                    player.health -= 20;
+                    player.invulnerable = true;
+                    player.lastDamageTime = Date.now();
+                    hitSound.play();
+                    createParticleEffect(player.x + gameConfig.player.width / 2, player.y + gameConfig.player.height / 2, 10, '#FF3333', 3);
+                    updateHealthBar();
+                    if (player.health <= 0) endGame();
+                }
+            });
+
+            if (player.invulnerable && Date.now() - player.lastDamageTime > gameConfig.player.invulnerableTime) player.invulnerable = false;
+
+            gameState.collectibles.forEach((collectible, index) => {
+                if (player.x + gameConfig.player.width > collectible.x && player.x < collectible.x + collectible.width &&
+                    player.y + gameConfig.player.height > collectible.y && player.y < collectible.y + collectible.height) {
+                    gameState.score += collectible.value * (player.hasPowerUp && player.powerUpType === 'doubleScore' ? 2 : 1);
+                    collectSound.play();
+                    createParticleEffect(collectible.x + collectible.width / 2, collectible.y + collectible.height / 2, 5, '#FFD700', 2);
+                    gameState.collectibles.splice(index, 1);
+                }
+            });
+
+            gameState.powerUps.forEach((powerUp, index) => {
+                if (player.x + gameConfig.player.width > powerUp.x && player.x < powerUp.x + powerUp.width &&
+                    player.y + gameConfig.player.height > powerUp.y && player.y < powerUp.y + powerUp.height) {
+                    player.hasPowerUp = true;
+                    player.powerUpType = powerUp.type;
+                    player.powerUpEndTime = Date.now() + gameConfig.powerUp.duration;
+                    powerUpSound.play();
+                    powerIndicator.textContent = `Power: ${powerUp.type}`;
+                    createParticleEffect(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2, 10, '#00FFFF', 3);
+                    gameState.powerUps.splice(index, 1);
+                }
+            });
+        }
+
+        function render() {
+            ctx.save();
+            if (gameState.camera.shake.timer < gameState.camera.shake.duration) {
+                const shakeX = (Math.random() - 0.5) * gameState.camera.shake.intensity;
+                const shakeY = (Math.random() - 0.5) * gameState.camera.shake.intensity;
+                ctx.translate(shakeX, shakeY);
+                gameState.camera.shake.timer += 1;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            gameState.background.layers.forEach((layer) => {
+                const offset = (gameState.score * layer.speed) % canvas.width;
+                ctx.drawImage(layer.image, -offset, 0);
+                ctx.drawImage(layer.image, canvas.width - offset, 0);
+            });
+
+            gameState.sceneryElements.forEach((element) => {
+                ctx.fillStyle = element.type === 'gravestone' ? '#555555' : element.type === 'tree' ? '#2A2A2A' : 'rgba(200, 200, 200, 0.3)';
+                if (element.type === 'gravestone') {
+                    ctx.fillRect(element.x, element.y, element.width, element.height);
+                    ctx.fillStyle = '#777777';
+                    ctx.fillRect(element.x + element.width / 2 - 2, element.y - 5, 4, 5);
+                } else if (element.type === 'tree') {
+                    ctx.fillRect(element.x + element.width / 4, element.y + 20, element.width / 2, element.height - 20);
+                    ctx.beginPath();
+                    ctx.moveTo(element.x, element.y + 20);
+                    ctx.lineTo(element.x + element.width / 2, element.y - 40);
+                    ctx.lineTo(element.x + element.width, element.y + 20);
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(element.x, element.y, element.width, element.height);
+                }
+            });
+
+            ctx.fillStyle = gameConfig.colors.ground;
+            ctx.fillRect(0, canvas.height - gameConfig.ground.height, canvas.width, gameConfig.ground.height);
+
+            gameState.platforms.forEach((platform) => {
+                const frame = sprites.platform[platform.frame];
+                const tiles = Math.ceil(platform.width / 30);
+                for (let i = 0; i < tiles; i++) {
+                    ctx.drawImage(frame, platform.x + i * 30, platform.y, Math.min(30, platform.width - i * 30), platform.height);
+                }
+            });
+
+            gameState.obstacles.forEach((obstacle) => {
+                ctx.drawImage(sprites.enemy[obstacle.enemy][obstacle.frame], obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+
+            gameState.collectibles.forEach((collectible) => {
+                ctx.drawImage(sprites.collectible[collectible.frame], collectible.x, collectible.y, collectible.width, collectible.height);
+            });
+
+            gameState.powerUps.forEach((powerUp) => {
+                ctx.drawImage(sprites.powerUp[powerUp.frame], powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+            });
+
+            let currentAnimation = sprites.player.run;
+            gameState.player.animation.frameCount = 8;
+            if (gameState.player.sliding) currentAnimation = sprites.player.slide, gameState.player.animation.frameCount = 6;
+            else if (gameState.player.jumping) {
+                if (gameState.player.doubleJumpAvailable) currentAnimation = sprites.player.jump, gameState.player.animation.frameCount = 6;
+                else currentAnimation = sprites.player.doubleJump;
+            } else if (gameState.player.velocityY > 0) currentAnimation = sprites.player.fall, gameState.player.animation.frameCount = 6;
+            else if (gameState.player.invulnerable) currentAnimation = sprites.player.hit, gameState.player.animation.frameCount = 6;
+            ctx.drawImage(currentAnimation[Math.floor(gameState.player.animation.frame)], gameState.player.x, gameState.player.y, gameConfig.player.width, gameConfig.player.height);
+
+            if (gameState.player.hasPowerUp && gameState.player.powerUpType === 'invulnerability') {
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = gameConfig.colors.powerUp;
+                ctx.beginPath();
+                ctx.arc(gameState.player.x + gameConfig.player.width / 2, gameState.player.y + gameConfig.player.height / 2, gameConfig.player.width, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            gameState.particles.forEach((particle) => {
+                ctx.globalAlpha = particle.life / (gameConfig.particles.lifetime + 10);
+                ctx.drawImage(sprites.particles[particle.type], particle.x, particle.y, particle.size, particle.size);
+                ctx.globalAlpha = 1;
+            });
+
+            ctx.restore();
+        }
+
+        // **Initialization**
+        function init() {
+            resizeCanvas();
+            initAudio();
+            initVisuals();
+            setupEventListeners();
+        }
+
+        init();
+    </script>
+</body>
+</html>
